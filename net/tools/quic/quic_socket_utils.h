@@ -78,6 +78,31 @@ class QuicSocketUtils {
 };
 
 }  // namespace tools
+ 
+// Convenience struct for when you need a |struct sockaddr|.
+struct SockaddrStorage {
+  SockaddrStorage() : addr_len(sizeof(addr_storage)),
+                      addr(reinterpret_cast<struct sockaddr*>(&addr_storage)) {}
+  SockaddrStorage(const SockaddrStorage& other);
+  void operator=(const SockaddrStorage& other);
+
+  struct sockaddr_storage addr_storage;
+  socklen_t addr_len;
+  struct sockaddr* const addr;
+};
+
+SockaddrStorage::SockaddrStorage(const SockaddrStorage& other)
+    : addr_len(other.addr_len),
+      addr(reinterpret_cast<struct sockaddr*>(&addr_storage)) {
+  memcpy(addr, other.addr, addr_len);
+}
+
+void SockaddrStorage::operator=(const SockaddrStorage& other) {
+  addr_len = other.addr_len;
+  // addr is already set to &this->addr_storage by default ctor.
+  memcpy(addr, other.addr, addr_len);
+}
+
 }  // namespace net
 
 #endif  // NET_TOOLS_QUIC_QUIC_SOCKET_UTILS_H_
