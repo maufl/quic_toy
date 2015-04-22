@@ -60,10 +60,6 @@ class QuicServerSession : public QuicSession {
   void OnConnectionClosed(QuicErrorCode error, bool from_peer) override;
   void OnWriteBlocked() override;
 
-  // Sends a server config update to the client, containing new bandwidth
-  // estimate.
-  void OnCongestionWindowChange(QuicTime now) override;
-
   ~QuicServerSession() override;
 
   // |crypto_config| must outlive the session.
@@ -72,9 +68,6 @@ class QuicServerSession : public QuicSession {
   const QuicCryptoServerStream* crypto_stream() const {
     return crypto_stream_.get();
   }
-
-  // Override base class to process FEC config received from client.
-  void OnConfigNegotiated() override;
 
   void set_serving_region(std::string serving_region) {
     serving_region_ = serving_region;

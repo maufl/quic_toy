@@ -21,7 +21,6 @@
 #include "net/tools/quic/quic_dispatcher.h"
 #include "net/tools/quic/quic_epoll_clock.h"
 #include "net/tools/quic/quic_epoll_connection_helper.h"
-#include "net/tools/quic/quic_in_memory_cache.h"
 #include "net/tools/quic/quic_packet_reader.h"
 #include "net/tools/quic/quic_socket_utils.h"
 
