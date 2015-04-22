@@ -48,10 +48,15 @@ int QuicClientSession::GetNumSentClientHellos() const {
   return crypto_stream_->num_sent_client_hellos();
 }
 
-QuicDataStream* QuicClientSession::CreateIncomingDataStream(
+QuicClientStream* QuicClientSession::CreateIncomingDataStream(
     QuicStreamId id) {
   DLOG(ERROR) << "Server push not supported";
   return nullptr;
+}
+
+QuicClientStream* QuicClientSession::CreateOutgoingDataStream() {
+  QuicClientStream* stream = new QuicClientStream(GetNextStreamId(), this);
+  return stream;
 }
 
 }  // namespace tools

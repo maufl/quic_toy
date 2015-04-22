@@ -13,6 +13,7 @@
 #include "net/quic/quic_client_session_base.h"
 #include "net/quic/quic_crypto_client_stream.h"
 #include "net/quic/quic_protocol.h"
+#include "net/tools/quic/quic_client_stream.h"
 
 namespace net {
 
@@ -52,8 +53,9 @@ class QuicClientSession : public QuicClientSessionBase {
 
  protected:
   // QuicSession methods:
-  QuicDataStream* CreateIncomingDataStream(QuicStreamId id) override;
-
+  QuicClientStream* CreateIncomingDataStream(QuicStreamId id) override;
+  QuicClientStream* CreateOutgoingDataStream() override;
+  
  private:
   scoped_ptr<QuicCryptoClientStream> crypto_stream_;
 
