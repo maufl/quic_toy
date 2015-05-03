@@ -1,0 +1,3 @@
+**/*.o
+quic_cat_client
+quic_cat_server
