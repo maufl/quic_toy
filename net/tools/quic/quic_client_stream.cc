@@ -12,5 +12,9 @@ namespace net {
     uint32 QuicClientStream::ProcessData(const char* data, uint32 data_len) {
       return 0;
     }
+
+    void QuicClientStream::WriteStringPiece(base::StringPiece data, bool fin) {
+      this->WriteOrBufferData(data, fin, nullptr);
+    }
   }
 }
