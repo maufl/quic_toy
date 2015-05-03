@@ -22,11 +22,31 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
+  // Is needed for whatever reason
+  base::AtExitManager exit_manager;
+
   net::IPAddressNumber ip_address = (net::IPAddressNumber) std::vector<unsigned char> { 127, 0, 0, 1};
   net::IPEndPoint server_address(ip_address, 1337);
   net::QuicServerId server_id("localhost", 1337, /*is_http*/ false, net::PRIVACY_MODE_DISABLED);
   net::QuicVersionVector supported_versions = net::QuicSupportedVersions();
-  net::EpollServer* epoll_server;
+  net::EpollServer epoll_server;
   
-  net::tools::QuicClient client(server_address, server_id, supported_versions, epoll_server);
+  net::tools::QuicClient client(server_address, server_id, supported_versions, &epoll_server);
+  if (!client.Initialize()) {
+    cerr << "Could not initialize client" << endl;
+    return 1;
+  }
+  cout << "Successfully initialized client" << endl;
+  if (!client.Connect()) {
+    cout << "Client could not connect" << endl;
+    return 1;
+  }
+  cout << "Successfully connected to server, hopefully" << endl;
+
+  net::tools::QuicClientStream* stream = client.CreateClientStream();
+
+  for (string input; getline(cin, input);) {
+    cout << "Sending data\n";
+    stream->WriteStringPiece(base::StringPiece(input), false);
+  }
 }

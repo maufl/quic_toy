@@ -1,16 +1,17 @@
 CC=g++
-CFLAGS=--std=c++11 -fpermissive -c
+CFLAGS=--std=c++11 -fpermissive -c -g
 INC=-I . -I ../libquic/src
 LDFLAGS=-L ../libquic/build -l quic -L ../libquic/build/boringssl/ssl -l ssl -L ../libquic/build/boringssl/crypto -l crypto -l pthread
-SOURCES=$(wildcard *.cc) $(wildcard net/tools/quic/*.cc) $(wildcard net/tools/epoll_server/*.cc)
-OBJECTS=$(SOURCES:.cc=.o)
+SRCFILES=$(wildcard net/tools/quic/*.cc) $(wildcard net/tools/epoll_server/*.cc)
+OBJFILES=$(SRCFILES:.cc=.o)
 
-EXECUTABLE=quic_cat_client
+all: quic_cat_client quic_cat_server
 
-all: $(SOURCES) $(EXECUTABLE)
+quic_cat_client: $(OBJFILES) quic_cat_client.o
+	$(CC) $(OBJFILES) $@.o -o $@ $(LDFLAGS)
 
-$(EXECUTABLE): $(OBJECTS)
-	$(CC) $(OBJECTS) -o $@ $(LDFLAGS)
+quic_cat_server: $(OBJFILES) quic_cat_server.o
+	$(CC) $(OBJFILES) $@.o -o $@ $(LDFLAGS)
 
 .cc.o:
 	$(CC) $(CFLAGS) $(INC) $< -o $@
@@ -19,4 +20,4 @@ print-%:
 	@echo $* = $($*)
 
 clean:
-	rm $(OBJECTS)
+	rm $(OBJFILES) quic_cat_client.o quic_cat_server.o

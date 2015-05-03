@@ -2,11 +2,17 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <iostream>
+
 #include "net/tools/quic/quic_server_session.h"
 
 #include "base/logging.h"
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_flags.h"
+
+#include "net/tools/quic/quic_server_stream.h"
+
+using namespace std;
 
 namespace net {
 namespace tools {
@@ -63,16 +69,6 @@ bool QuicServerSession::ShouldCreateIncomingDataStream(QuicStreamId id) {
     return false;
   }
   return true;
-}
-
-QuicDataStream* QuicServerSession::CreateIncomingDataStream(
-    QuicStreamId id) {
-  return nullptr;
-}
-
-QuicDataStream* QuicServerSession::CreateOutgoingDataStream() {
-  DLOG(ERROR) << "Server push not yet supported";
-  return nullptr;
 }
 
 QuicCryptoServerStream* QuicServerSession::GetCryptoStream() {

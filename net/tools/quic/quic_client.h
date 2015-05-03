@@ -74,6 +74,8 @@ class QuicClient : public EpollCallbackInterface,
   // the handshake) or if the connection has been closed.
   bool EncryptionBeingEstablished();
 
+  QuicClientStream* CreateClientStream();
+
   // Disconnects from the QUIC server.
   void Disconnect();
 

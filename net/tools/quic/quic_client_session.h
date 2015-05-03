@@ -30,40 +30,23 @@ class QuicClientSession : public QuicClientSessionBase {
 
   void InitializeSession(const QuicServerId& server_id,
                          QuicCryptoClientConfig* config);
-
-  // QuicSession methods:
-  QuicCryptoClientStream* GetCryptoStream() override;
-
-  // QuicClientSessionBase methods:
-  void OnProofValid(const QuicCryptoClientConfig::CachedState& cached) override;
-  void OnProofVerifyDetailsAvailable(
-      const ProofVerifyDetails& verify_details) override;
-
-  // Performs a crypto handshake with the server.
+  
   void CryptoConnect();
 
-  // Returns the number of client hello messages that have been sent on the
-  // crypto stream. If the handshake has completed then this is one greater
-  // than the number of round-trips needed for the handshake.
-  int GetNumSentClientHellos() const;
+  QuicClientStream* CreateClientStream();
 
-  void set_respect_goaway(bool respect_goaway) {
-    respect_goaway_ = respect_goaway;
-  }
+  QuicCryptoStream* GetCryptoStream() { return crypto_stream_.get(); };
 
- protected:
-  // QuicSession methods:
-  QuicClientStream* CreateIncomingDataStream(QuicStreamId id) override;
-  QuicClientStream* CreateOutgoingDataStream() override;
-  
+  // has to be implemented to satisfy QuicSession but is infested with SPDY
+  QuicDataStream* CreateOutgoingDataStream() { return nullptr; };
+  QuicDataStream* CreateIncomingDataStream(QuicStreamId id) { return nullptr; };
+  // has to be implemented for secure stream
+  void OnProofValid(const QuicCryptoClientConfig::CachedState&) {};
+  void OnProofVerifyDetailsAvailable(const ProofVerifyDetails&) {};
+
  private:
   scoped_ptr<QuicCryptoClientStream> crypto_stream_;
 
-  // If this is set to false, the client will ignore server GOAWAYs and allow
-  // the creation of streams regardless of the high chance they will fail.
-  bool respect_goaway_;
-
-  DISALLOW_COPY_AND_ASSIGN(QuicClientSession);
 };
 
 }  // namespace tools

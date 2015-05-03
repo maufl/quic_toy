@@ -18,6 +18,8 @@
 #include "net/quic/quic_protocol.h"
 #include "net/quic/quic_session.h"
 
+#include "net/tools/quic/quic_server_stream.h"
+
 namespace net {
 
 class QuicBlockedWriterInterface;
@@ -73,10 +75,12 @@ class QuicServerSession : public QuicSession {
     serving_region_ = serving_region;
   }
 
+  QuicServerStream* CreateIncomingServerStream(QuicStreamId id);
+
  protected:
   // QuicSession methods:
-  QuicDataStream* CreateIncomingDataStream(QuicStreamId id) override;
-  QuicDataStream* CreateOutgoingDataStream() override;
+  QuicDataStream* CreateIncomingDataStream(QuicStreamId id) { return nullptr; };
+  QuicDataStream* CreateOutgoingDataStream() { return nullptr; };
   QuicCryptoServerStream* GetCryptoStream() override;
 
   // If we should create an incoming stream, returns true. Otherwise

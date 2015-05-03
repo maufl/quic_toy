@@ -21,15 +21,7 @@
 #include "net/tools/quic/quic_dispatcher.h"
 #include "net/tools/quic/quic_epoll_clock.h"
 #include "net/tools/quic/quic_epoll_connection_helper.h"
-#include "net/tools/quic/quic_packet_reader.h"
 #include "net/tools/quic/quic_socket_utils.h"
-
-// TODO(rtenneti): Add support for MMSG_MORE.
-#define MMSG_MORE 0
-// If true, QuicListener uses the QuicPacketReader to read packets instead of
-// QuicServer.
-// TODO(rtenneti): Enable this flag after MMSG_MORE is set to 1.
-#define FLAGS_quic_use_optimized_packet_reader false
 
 #ifndef SO_RXQ_OVFL
 #define SO_RXQ_OVFL 40
@@ -38,11 +30,6 @@
 namespace net {
 namespace tools {
 namespace {
-
-// Specifies the directory used during QuicInMemoryCache
-// construction to seed the cache. Cache directory can be
-// generated using `wget -p --save-headers <url>`
-std::string FLAGS_quic_in_memory_cache_dir = "";
 
 const int kEpollFlags = EPOLLIN | EPOLLOUT | EPOLLET;
 const char kSourceAddressTokenSecret[] = "secret";
@@ -54,10 +41,8 @@ QuicServer::QuicServer()
       fd_(-1),
       packets_dropped_(0),
       overflow_supported_(false),
-      use_recvmmsg_(false),
       crypto_config_(kSourceAddressTokenSecret, QuicRandom::GetInstance()),
-      supported_versions_(QuicSupportedVersions()),
-      packet_reader_(new QuicPacketReader()) {
+      supported_versions_(QuicSupportedVersions()) {
   Initialize();
 }
 
@@ -67,19 +52,13 @@ QuicServer::QuicServer(const QuicConfig& config,
       fd_(-1),
       packets_dropped_(0),
       overflow_supported_(false),
-      use_recvmmsg_(false),
       config_(config),
       crypto_config_(kSourceAddressTokenSecret, QuicRandom::GetInstance()),
-      supported_versions_(supported_versions),
-      packet_reader_(new QuicPacketReader()) {
+      supported_versions_(supported_versions) {
   Initialize();
 }
 
 void QuicServer::Initialize() {
-#if MMSG_MORE
-  use_recvmmsg_ = true;
-#endif
-
   // If an initial flow control window has not explicitly been set, then use a
   // sensible value for a server: 1 MB for session, 64 KB for each stream.
   const uint32 kInitialSessionFlowControlWindow = 1 * 1024 * 1024;  // 1 MB
@@ -214,34 +193,9 @@ void QuicServer::OnEvent(int fd, EpollEvent* event) {
     DVLOG(1) << "EPOLLIN";
     bool read = true;
     while (read) {
-      if (use_recvmmsg_) {
-        if (FLAGS_quic_use_optimized_packet_reader) {
-          read = packet_reader_->ReadAndDispatchPackets(
-              fd_, port_, dispatcher_.get(),
-              overflow_supported_ ? &packets_dropped_ : nullptr);
-        } else {
-// TODO(rtenneti): Add support for ReadAndDispatchPackets.
-#if 0
-          read = ReadAndDispatchPackets(
-              fd_, port_, dispatcher_.get(),
-              overflow_supported_ ? &packets_dropped_ : nullptr);
-#else
-          read = ReadAndDispatchSinglePacket(
-              fd_, port_, dispatcher_.get(),
-              overflow_supported_ ? &packets_dropped_ : nullptr);
-#endif
-        }
-      } else {
-        if (FLAGS_quic_use_optimized_packet_reader) {
-          read = QuicPacketReader::ReadAndDispatchSinglePacket(
-              fd_, port_, dispatcher_.get(),
-              overflow_supported_ ? &packets_dropped_ : nullptr);
-        } else {
-          read = ReadAndDispatchSinglePacket(
-              fd_, port_, dispatcher_.get(),
-              overflow_supported_ ? &packets_dropped_ : nullptr);
-        }
-      }
+      read = ReadAndDispatchSinglePacket(
+					 fd_, port_, dispatcher_.get(),
+					 overflow_supported_ ? &packets_dropped_ : nullptr);
     }
   }
   if (event->in_events & EPOLLOUT) {

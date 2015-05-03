@@ -15,7 +15,7 @@ namespace tools {
 
 QuicClientSession::QuicClientSession(const QuicConfig& config,
                                      QuicConnection* connection)
-    : QuicClientSessionBase(connection, config), respect_goaway_(true) {
+    : QuicClientSessionBase(connection, config) {
 }
 
 QuicClientSession::~QuicClientSession() {
@@ -29,34 +29,13 @@ void QuicClientSession::InitializeSession(
   QuicClientSessionBase::InitializeSession();
 }
 
-void QuicClientSession::OnProofValid(
-    const QuicCryptoClientConfig::CachedState& /*cached*/) {}
-
-void QuicClientSession::OnProofVerifyDetailsAvailable(
-    const ProofVerifyDetails& /*verify_details*/) {}
-
-QuicCryptoClientStream* QuicClientSession::GetCryptoStream() {
-  return crypto_stream_.get();
-}
-
 void QuicClientSession::CryptoConnect() {
   DCHECK(flow_controller());
   crypto_stream_->CryptoConnect();
 }
-
-int QuicClientSession::GetNumSentClientHellos() const {
-  return crypto_stream_->num_sent_client_hellos();
-}
-
-QuicClientStream* QuicClientSession::CreateIncomingDataStream(
-    QuicStreamId id) {
-  DLOG(ERROR) << "Server push not supported";
-  return nullptr;
-}
-
-QuicClientStream* QuicClientSession::CreateOutgoingDataStream() {
-  QuicClientStream* stream = new QuicClientStream(GetNextStreamId(), this);
-  return stream;
+  
+QuicClientStream* QuicClientSession::CreateClientStream() {
+  return new QuicClientStream(GetNextStreamId(), this);
 }
 
 }  // namespace tools

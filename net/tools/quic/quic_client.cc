@@ -219,6 +219,13 @@ void QuicClient::CleanUpUDPSocket() {
   }
 }
 
+QuicClientStream* QuicClient::CreateClientStream() {
+  if (!connected()) {
+    return nullptr;
+  }
+  return session_->CreateClientStream();
+}
+
 void QuicClient::WaitForStreamToClose(QuicStreamId id) {
   DCHECK(connected());
 
