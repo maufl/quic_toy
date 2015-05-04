@@ -7,12 +7,14 @@ namespace net {
 
     QuicServerStream::QuicServerStream(QuicStreamId id, QuicSession* session)
       : QuicDataStream(id, session) {
+      std::cout << "Initializing new server stream\n";
+      sequencer()->FlushBufferedFrames();
     }
 
     QuicServerStream::~QuicServerStream() {}
 
     uint32 QuicServerStream::ProcessRawData(const char* data, uint32 data_len) {
-      std::cout << data << "\n";
+      std::cout << ">> " << std::string(data, data_len) << "\n";
       return data_len;
     }
 

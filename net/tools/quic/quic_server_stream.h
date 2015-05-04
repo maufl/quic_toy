@@ -13,6 +13,7 @@ namespace net {
       ~QuicServerStream();
 
       uint32 ProcessRawData(const char* data, uint32 data_len) override;
+      uint32 ProcessData(const char* data, uint32 data_len) { return 0; };
 
       QuicPriority EffectivePriority() const override;
 

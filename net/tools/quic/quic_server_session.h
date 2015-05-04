@@ -79,7 +79,7 @@ class QuicServerSession : public QuicSession {
 
  protected:
   // QuicSession methods:
-  QuicDataStream* CreateIncomingDataStream(QuicStreamId id) { return nullptr; };
+  QuicDataStream* CreateIncomingDataStream(QuicStreamId id);
   QuicDataStream* CreateOutgoingDataStream() { return nullptr; };
   QuicCryptoServerStream* GetCryptoStream() override;
 

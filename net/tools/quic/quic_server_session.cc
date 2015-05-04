@@ -75,5 +75,9 @@ QuicCryptoServerStream* QuicServerSession::GetCryptoStream() {
   return crypto_stream_.get();
 }
 
+QuicDataStream* QuicServerSession::CreateIncomingDataStream(QuicStreamId id) {
+  return new QuicServerStream(id, this);
+}
+
 }  // namespace tools
 }  // namespace net

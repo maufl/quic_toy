@@ -44,9 +44,10 @@ int main(int argc, char *argv[]) {
   cout << "Successfully connected to server, hopefully" << endl;
 
   net::tools::QuicClientStream* stream = client.CreateClientStream();
-
+  cout << "<< ";
   for (string input; getline(cin, input);) {
     cout << "Sending data\n";
     stream->WriteStringPiece(base::StringPiece(input), false);
+    cout << "<< ";
   }
 }
