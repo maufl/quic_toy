@@ -30,10 +30,6 @@ class ReliableQuicStream;
 
 namespace tools {
 
-namespace test {
-class QuicServerSessionPeer;
-}  // namespace test
-
 // An interface from the session to the entity owning the session.
 // This lets the session notify its owner (the Dispatcher) when the connection
 // is closed, blocked, or added/removed from the time-wait list.
@@ -75,8 +71,6 @@ class QuicServerSession : public QuicSession {
     serving_region_ = serving_region;
   }
 
-  QuicServerStream* CreateIncomingServerStream(QuicStreamId id);
-
  protected:
   // QuicSession methods:
   QuicDataStream* CreateIncomingDataStream(QuicStreamId id);
@@ -92,8 +86,6 @@ class QuicServerSession : public QuicSession {
       const QuicCryptoServerConfig* crypto_config);
 
  private:
-  friend class test::QuicServerSessionPeer;
-
   scoped_ptr<QuicCryptoServerStream> crypto_stream_;
   QuicServerSessionVisitor* visitor_;
 

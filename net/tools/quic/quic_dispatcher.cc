@@ -10,7 +10,6 @@
 #include "base/logging.h"
 #include "base/stl_util.h"
 #include "net/quic/quic_utils.h"
-#include "net/tools/quic/quic_per_connection_packet_writer.h"
 #include "net/tools/quic/quic_time_wait_list_manager.h"
 
 namespace net {
@@ -96,7 +95,7 @@ class QuicDispatcher::QuicFramerVisitor : public QuicFramerVisitorInterface {
   void OnFecProtectedPayload(StringPiece /*payload*/) override {
     DCHECK(false);
   }
-  bool OnStreamFrame(const QuicStreamFrame& /*frame*/) override {
+ bool OnStreamFrame(const QuicStreamFrame& /*frame*/) override {
     DCHECK(false);
     return false;
   }
@@ -146,7 +145,7 @@ class QuicDispatcher::QuicFramerVisitor : public QuicFramerVisitorInterface {
 QuicPacketWriter* QuicDispatcher::DefaultPacketWriterFactory::Create(
     QuicPacketWriter* writer,
     QuicConnection* connection) {
-  return new QuicPerConnectionPacketWriter(writer, connection);
+  return writer;
 }
 
 QuicDispatcher::PacketWriterFactoryAdapter::PacketWriterFactoryAdapter(

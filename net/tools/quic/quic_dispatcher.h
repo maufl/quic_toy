@@ -27,10 +27,6 @@ class QuicServerSession;
 
 namespace tools {
 
-namespace test {
-class QuicDispatcherPeer;
-}  // namespace test
-
 class ProcessPacketInterface {
  public:
   virtual ~ProcessPacketInterface() {}
@@ -183,7 +179,6 @@ class QuicDispatcher : public QuicServerSessionVisitor,
 
  private:
   class QuicFramerVisitor;
-  friend class net::tools::test::QuicDispatcherPeer;
 
   // An adapter that creates packet writers using the dispatcher's
   // PacketWriterFactory and shared writer. Essentially, it just curries the

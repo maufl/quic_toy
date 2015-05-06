@@ -20,10 +20,6 @@
 namespace net {
 namespace tools {
 
-namespace test {
-class QuicServerPeer;
-}  // namespace test
-
 class ProcessPacketInterface;
 class QuicDispatcher;
 class QuicPacketReader;
@@ -100,8 +96,6 @@ class QuicServer : public EpollCallbackInterface {
   QuicDispatcher* dispatcher() { return dispatcher_.get(); }
 
  private:
-  friend class net::tools::test::QuicServerPeer;
-
   // Initialize the internal state of the server.
   void Initialize();
 
