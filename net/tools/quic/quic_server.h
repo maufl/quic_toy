@@ -26,7 +26,6 @@ class QuicPacketReader;
 
 class QuicServer : public EpollCallbackInterface {
  public:
-  QuicServer();
   QuicServer(const QuicConfig& config,
              const QuicVersionVector& supported_versions);
 
@@ -47,15 +46,11 @@ class QuicServer : public EpollCallbackInterface {
   void OnEvent(int fd, EpollEvent* event) override;
   void OnUnregistration(int fd, bool replaced) override {}
 
-  // Reads a number of packets from the given fd, and then passes them off to
-  // the QuicDispatcher.  Returns true if some packets are read, false
-  // otherwise.
+  // Reads a packet from the given fd, and then passes it off to
+  // the QuicDispatcher.
   // If packets_dropped is non-null, the socket is configured to track
   // dropped packets, and some packets are read, it will be set to the number of
   // dropped packets.
-  static bool ReadAndDispatchPackets(int fd, int port,
-                                     ProcessPacketInterface* processor,
-                                     QuicPacketCount* packets_dropped);
   // Same as ReadAndDispatchPackets, only does one packet at a time.
   static bool ReadAndDispatchSinglePacket(int fd, int port,
                                           ProcessPacketInterface* processor,
@@ -80,10 +75,6 @@ class QuicServer : public EpollCallbackInterface {
   int port() { return port_; }
 
  protected:
-  virtual QuicDefaultPacketWriter* CreateWriter(int fd);
-
-  virtual QuicDispatcher* CreateQuicDispatcher();
-
   const QuicConfig& config() const { return config_; }
   const QuicCryptoServerConfig& crypto_config() const {
     return crypto_config_;
@@ -96,9 +87,6 @@ class QuicServer : public EpollCallbackInterface {
   QuicDispatcher* dispatcher() { return dispatcher_.get(); }
 
  private:
-  // Initialize the internal state of the server.
-  void Initialize();
-
   // Accepts data from the framer and demuxes clients to sessions.
   scoped_ptr<QuicDispatcher> dispatcher_;
   // Frames incoming packets and hands them to the dispatcher.

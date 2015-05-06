@@ -36,16 +36,6 @@ const char kSourceAddressTokenSecret[] = "secret";
 
 }  // namespace
 
-QuicServer::QuicServer()
-    : port_(0),
-      fd_(-1),
-      packets_dropped_(0),
-      overflow_supported_(false),
-      crypto_config_(kSourceAddressTokenSecret, QuicRandom::GetInstance()),
-      supported_versions_(QuicSupportedVersions()) {
-  Initialize();
-}
-
 QuicServer::QuicServer(const QuicConfig& config,
                        const QuicVersionVector& supported_versions)
     : port_(0),
@@ -55,10 +45,6 @@ QuicServer::QuicServer(const QuicConfig& config,
       config_(config),
       crypto_config_(kSourceAddressTokenSecret, QuicRandom::GetInstance()),
       supported_versions_(supported_versions) {
-  Initialize();
-}
-
-void QuicServer::Initialize() {
   // If an initial flow control window has not explicitly been set, then use a
   // sensible value for a server: 1 MB for session, 64 KB for each stream.
   const uint32 kInitialSessionFlowControlWindow = 1 * 1024 * 1024;  // 1 MB
@@ -153,23 +139,15 @@ bool QuicServer::Listen(const IPEndPoint& address) {
   }
 
   epoll_server_.RegisterFD(fd_, this, kEpollFlags);
-  dispatcher_.reset(CreateQuicDispatcher());
-  dispatcher_->InitializeWithWriter(CreateWriter(fd_));
-
-  return true;
-}
-
-QuicDefaultPacketWriter* QuicServer::CreateWriter(int fd) {
-  return new QuicDefaultPacketWriter(fd);
-}
-
-QuicDispatcher* QuicServer::CreateQuicDispatcher() {
-  return new QuicDispatcher(
+  dispatcher_.reset(new QuicDispatcher(
       config_,
       &crypto_config_,
       supported_versions_,
       new QuicDispatcher::DefaultPacketWriterFactory(),
-      new QuicEpollConnectionHelper(&epoll_server_));
+      new QuicEpollConnectionHelper(&epoll_server_)));
+  dispatcher_->InitializeWithWriter(new QuicDefaultPacketWriter(fd_));
+
+  return true;
 }
 
 void QuicServer::WaitForEvents() {
