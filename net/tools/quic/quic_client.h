@@ -31,21 +31,9 @@ namespace tools {
 
 class QuicEpollConnectionHelper;
 
-namespace test {
-class QuicClientPeer;
-}  // namespace test
-
 class QuicClient : public EpollCallbackInterface,
                    public QuicDataStream::Visitor {
  public:
-  class ResponseListener {
-   public:
-    ResponseListener() {}
-    virtual ~ResponseListener() {}
-    virtual void OnCompleteResponse(QuicStreamId id,
-                                    const std::string& response_body) = 0;
-  };
-
   // Create a quic client, which will have events managed by an externally owned
   // EpollServer.
   QuicClient(IPEndPoint server_address,
@@ -64,30 +52,10 @@ class QuicClient : public EpollCallbackInterface,
   // handshake.
   bool Connect();
 
-  // Start the crypto handshake.  This can be done in place of the synchronous
-  // Connect(), but callers are responsible for making sure the crypto handshake
-  // completes.
-  void StartConnect();
-
-  // Returns true if the crypto handshake has yet to establish encryption.
-  // Returns false if encryption is active (even if the server hasn't confirmed
-  // the handshake) or if the connection has been closed.
-  bool EncryptionBeingEstablished();
-
   QuicClientStream* CreateClientStream();
 
   // Disconnects from the QUIC server.
   void Disconnect();
-
-  // Wait for events until the stream with the given ID is closed.
-  void WaitForStreamToClose(QuicStreamId id);
-
-  // Wait for events until the handshake is confirmed.
-  void WaitForCryptoHandshakeConfirmed();
-
-  // Wait up to 50ms, and handle any events which occur.
-  // Returns true if there are any outstanding requests.
-  bool WaitForEvents();
 
   // From EpollCallbackInterface
   void OnRegistration(EpollServer* eps, int fd, int event_mask) override {}
@@ -99,84 +67,13 @@ class QuicClient : public EpollCallbackInterface,
   void OnUnregistration(int fd, bool replaced) override {}
   void OnShutdown(EpollServer* eps, int fd) override {}
 
-  // QuicDataStream::Visitor
-  void OnClose(QuicDataStream* stream) override;
-
-  QuicClientSession* session() { return session_.get(); }
+  void OnClose(QuicDataStream* stream) {}
 
   bool connected() const;
-  bool goaway_received() const;
-
-  void set_bind_to_address(IPAddressNumber address) {
-    bind_to_address_ = address;
-  }
-
-  IPAddressNumber bind_to_address() const { return bind_to_address_; }
-
-  void set_local_port(int local_port) { local_port_ = local_port; }
-
-  const IPEndPoint& server_address() const { return server_address_; }
-
-  const IPEndPoint& client_address() const { return client_address_; }
-
-  int fd() { return fd_; }
-
-  const QuicServerId& server_id() const { return server_id_; }
-
-  // This should only be set before the initial Connect()
-  void set_server_id(const QuicServerId& server_id) {
-    server_id_ = server_id;
-  }
-
-  void SetUserAgentID(const std::string& user_agent_id) {
-    crypto_config_.set_user_agent_id(user_agent_id);
-  }
-
-  // SetProofVerifier sets the ProofVerifier that will be used to verify the
-  // server's certificate and takes ownership of |verifier|.
-  void SetProofVerifier(ProofVerifier* verifier) {
-    // TODO(rtenneti): We should set ProofVerifier in QuicClientSession.
-    crypto_config_.SetProofVerifier(verifier);
-  }
-
-  // SetChannelIDSource sets a ChannelIDSource that will be called, when the
-  // server supports channel IDs, to obtain a channel ID for signing a message
-  // proving possession of the channel ID. This object takes ownership of
-  // |source|.
-  void SetChannelIDSource(ChannelIDSource* source) {
-    crypto_config_.SetChannelIDSource(source);
-  }
-
-  void SetSupportedVersions(const QuicVersionVector& versions) {
-    supported_versions_ = versions;
-  }
-
-  // Takes ownership of the listener.
-  void set_response_listener(ResponseListener* listener) {
-    response_listener_.reset(listener);
-  }
-
-  QuicConfig* config() { return &config_; }
-
-  void set_store_response(bool val) { store_response_ = val; }
-
-  size_t latest_response_code() const;
-  const std::string& latest_response_headers() const;
-  const std::string& latest_response_body() const;
-
- protected:
-  virtual QuicConnectionId GenerateConnectionId();
-  virtual QuicEpollConnectionHelper* CreateQuicConnectionHelper();
-  virtual QuicPacketWriter* CreateQuicPacketWriter();
-
-  virtual int ReadPacket(char* buffer,
-                         int buffer_len,
-                         IPEndPoint* server_address,
-                         IPAddressNumber* client_ip);
-
-  EpollServer* epoll_server() { return epoll_server_; }
 
  private:
+  EpollServer* epoll_server() { return epoll_server_; }
+
   // A packet writer factory that always returns the same writer
   class DummyPacketWriterFactory : public QuicConnection::PacketWriterFactory {
    public:
@@ -192,9 +89,6 @@ class QuicClient : public EpollCallbackInterface,
   // Used during initialization: creates the UDP socket FD, sets socket options,
   // and binds the socket to our address.
   bool CreateUDPSocket();
-
-  // If the socket has been created, then unregister and close() the FD.
-  void CleanUpUDPSocket();
 
   // Read a UDP packet and hand it to the framer.
   bool ReadAndProcessPacket();
@@ -232,9 +126,6 @@ class QuicClient : public EpollCallbackInterface,
   // Helper to be used by created connections.
   scoped_ptr<QuicEpollConnectionHelper> helper_;
 
-  // Listens for full responses.
-  scoped_ptr<ResponseListener> response_listener_;
-
   // Tracks if the client is initialized to connect.
   bool initialized_;
 
@@ -252,15 +143,6 @@ class QuicClient : public EpollCallbackInterface,
   // skipped as necessary). We will always pick supported_versions_[0] as the
   // initial version to use.
   QuicVersionVector supported_versions_;
-
-  // If true, store the latest response code, headers, and body.
-  bool store_response_;
-  // HTTP response code from most recent response.
-  size_t latest_response_code_;
-  // HTTP headers from most recent response.
-  std::string latest_response_headers_;
-  // Body of most recent response.
-  std::string latest_response_body_;
 
   DISALLOW_COPY_AND_ASSIGN(QuicClient);
 };

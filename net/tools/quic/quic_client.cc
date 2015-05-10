@@ -43,22 +43,15 @@ QuicClient::QuicClient(IPEndPoint server_address,
       local_port_(0),
       epoll_server_(epoll_server),
       fd_(-1),
-      helper_(CreateQuicConnectionHelper()),
+      helper_(new QuicEpollConnectionHelper(epoll_server_)),
       initialized_(false),
       packets_dropped_(0),
       overflow_supported_(false),
-      supported_versions_(supported_versions),
-      store_response_(false),
-      latest_response_code_(-1) {
+      supported_versions_(supported_versions) {
 }
 
 QuicClient::~QuicClient() {
-  if (connected()) {
-    session()->connection()->SendConnectionClosePacket(
-        QUIC_PEER_GOING_AWAY, "");
-  }
-
-  CleanUpUDPSocket();
+  Disconnect();
 }
 
 bool QuicClient::Initialize() {
@@ -163,24 +156,14 @@ bool QuicClient::CreateUDPSocket() {
 }
 
 bool QuicClient::Connect() {
-  StartConnect();
-  while (EncryptionBeingEstablished()) {
-    WaitForEvents();
-  }
-  return session_->connection()->connected();
-}
-
-void QuicClient::StartConnect() {
-  DCHECK(initialized_);
-  DCHECK(!connected());
-
-  QuicPacketWriter* writer = CreateQuicPacketWriter();
+  QuicPacketWriter* writer = new QuicDefaultPacketWriter(fd_);
 
   DummyPacketWriterFactory factory(writer);
 
   session_.reset(new QuicClientSession(
       config_,
-      new QuicConnection(GenerateConnectionId(), server_address_, helper_.get(),
+      new QuicConnection((QuicConnectionId) QuicRandom::GetInstance()->RandUint64(),
+                         server_address_, helper_.get(),
                          factory,
                          /* owns_writer= */ false, /* is_server */ false,
                          server_id_.is_https(), supported_versions_)));
@@ -192,31 +175,27 @@ void QuicClient::StartConnect() {
   }
   session_->InitializeSession(server_id_, &crypto_config_);
   session_->CryptoConnect();
-}
 
-bool QuicClient::EncryptionBeingEstablished() {
-  return !session_->IsEncryptionEstablished() &&
-      session_->connection()->connected();
+  while (!session_->IsEncryptionEstablished() &&
+         session_->connection()->connected()) {
+    epoll_server_->WaitForEventsAndExecuteCallbacks();
+  }
+  return session_->connection()->connected();
 }
 
 void QuicClient::Disconnect() {
-  DCHECK(initialized_);
 
   if (connected()) {
-    session()->connection()->SendConnectionClose(QUIC_PEER_GOING_AWAY);
+    session_->connection()->SendConnectionClose(QUIC_PEER_GOING_AWAY);
   }
 
-  CleanUpUDPSocket();
-
-  initialized_ = false;
-}
-
-void QuicClient::CleanUpUDPSocket() {
   if (fd_ > -1) {
     epoll_server_->UnregisterFD(fd_);
     close(fd_);
     fd_ = -1;
   }
+
+  initialized_ = false;
 }
 
 QuicClientStream* QuicClient::CreateClientStream() {
@@ -224,29 +203,6 @@ QuicClientStream* QuicClient::CreateClientStream() {
     return nullptr;
   }
   return session_->CreateClientStream();
-}
-
-void QuicClient::WaitForStreamToClose(QuicStreamId id) {
-  DCHECK(connected());
-
-  while (connected() && !session_->IsClosedStream(id)) {
-    WaitForEvents();
-  }
-}
-
-void QuicClient::WaitForCryptoHandshakeConfirmed() {
-  DCHECK(connected());
-
-  while (connected() && !session_->IsCryptoHandshakeConfirmed()) {
-    WaitForEvents();
-  }
-}
-
-bool QuicClient::WaitForEvents() {
-  DCHECK(connected());
-
-  epoll_server_->WaitForEventsAndExecuteCallbacks();
-  return session_->num_active_requests() != 0;
 }
 
 void QuicClient::OnEvent(int fd, EpollEvent* event) {
@@ -265,53 +221,9 @@ void QuicClient::OnEvent(int fd, EpollEvent* event) {
   }
 }
 
-void QuicClient::OnClose(QuicDataStream* stream) {
-}
-
 bool QuicClient::connected() const {
   return session_.get() && session_->connection() &&
       session_->connection()->connected();
-}
-
-bool QuicClient::goaway_received() const {
-  return session_ != nullptr && session_->goaway_received();
-}
-
-size_t QuicClient::latest_response_code() const {
-  LOG_IF(DFATAL, !store_response_) << "Response not stored!";
-  return latest_response_code_;
-}
-
-const string& QuicClient::latest_response_headers() const {
-  LOG_IF(DFATAL, !store_response_) << "Response not stored!";
-  return latest_response_headers_;
-}
-
-const string& QuicClient::latest_response_body() const {
-  LOG_IF(DFATAL, !store_response_) << "Response not stored!";
-  return latest_response_body_;
-}
-
-QuicConnectionId QuicClient::GenerateConnectionId() {
-  return QuicRandom::GetInstance()->RandUint64();
-}
-
-QuicEpollConnectionHelper* QuicClient::CreateQuicConnectionHelper() {
-  return new QuicEpollConnectionHelper(epoll_server_);
-}
-
-QuicPacketWriter* QuicClient::CreateQuicPacketWriter() {
-  return new QuicDefaultPacketWriter(fd_);
-}
-
-int QuicClient::ReadPacket(char* buffer,
-                           int buffer_len,
-                           IPEndPoint* server_address,
-                           IPAddressNumber* client_ip) {
-  return QuicSocketUtils::ReadPacket(
-      fd_, buffer, buffer_len,
-      overflow_supported_ ? &packets_dropped_ : nullptr, client_ip,
-      server_address);
 }
 
 bool QuicClient::ReadAndProcessPacket() {
@@ -322,7 +234,10 @@ bool QuicClient::ReadAndProcessPacket() {
   IPEndPoint server_address;
   IPAddressNumber client_ip;
 
-  int bytes_read = ReadPacket(buf, arraysize(buf), &server_address, &client_ip);
+  int bytes_read = QuicSocketUtils::ReadPacket(
+        fd_, buf, arraysize(buf),
+        overflow_supported_ ? &packets_dropped_ : nullptr, &client_ip,
+        &server_address);
 
   if (bytes_read < 0) {
     return false;

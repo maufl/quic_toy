@@ -79,8 +79,61 @@ The OnStreamFrame method of this interface is used to hand stream frames from th
 
 ## Write your own QUIC application
 To write an application that uses QUIC, you will have to subclass some of the QUIC classes as well as creating some new classes.
-For each the server and the client, you need at least to subclass the QuicSession class and the QuicDataStream class.
-Your QuicSession needs to instantiate your own stream class in CreateIncomingDataStream.
-Your QuicDataStream needs to implement ProcessRawData to override the header logic in QuicDataStream and to do something useful with the incoming data.
 
-More to come.
+### Sub classes
+For each the server and the client, you need at least to subclass the QuicSession class and likely the QuicDataStream class.
+
+#### Session sub classes
+All QuicSession sub classes have to implement:
+* GetCryptoStream
+* CreateIncomingDataStream
+* CreateOutgoingDataStream
+The last to methods are called when a new QuicDataStream (sub) class must be created.
+By implementing these methods the session can be made to use a custom QuicDataStream sub class.
+
+The client session class inherits from QuicClientBaseSession.
+It has to additionally implement OnProofValid and OnProofVerifyDetailsAvailable as they are purely virtual in the base class.
+These have be implemented if you want to have secure connections but can be no-ops otherwise.
+You also have to implement the creation of the crypto stream and start the crypto negotiation.
+
+The server session class inherits directly from QuicSession.
+Here too, you have to implement handling of the crypto stream.
+Most likely you want to override CreateIncomingDataStream and make it return an instance of your own stream class.
+
+#### Stream sub classes
+In the client, you can probably use the existing QuicDataStream.
+
+In the server you want to inherit from QuicDataStream.
+On creation of your stream class you **have to** call sequencer()->FlushBufferedFrames() to unblock the sequencer.
+Otherwise it will not pass new data to the stream until the headers of a SPDY request have been received.
+You can then override ProcessRawData which will receive all data for this stream.
+
+### New classes
+You will need additional classes to have a functional QUIC application.
+
+#### QuicPacketWriter
+To handle packet writing you will have to implement the QuicPacketWriter interface.
+The important method to implement is the WritePacket method.
+It takes a buffer of raw data, the length of the buffer, the own IP address and the IP address of the peer.
+It is responsible for writing the data to a network socket.
+
+#### Epoll server
+To asynchroniously handle the network connection, epoll can be used.
+An implementation of an epoll server is already present in the chromium source code.
+
+#### QUIC client application
+You also need a class that will read the network packages, dispatches it to the session, creates a session, connection, packet writer and connects all.
+It will usually create a new session and connection, passing the connection to the session.
+It must also create a QuicPacketWriter(Factory) and pass it to the connection, which will likely require creating a UDP socket.
+If you want to have async network communication and want to use the epoll server it also has to implement the EpollCallbackInterface.
+It then has to read the network packages when it is notified by the epoll server and call the ProcessUdpPacket method of the connection.
+
+#### QUIC server application
+The server side is a bit more involved, as it has to handle multiple sessions with multiple connections.
+Therefore, the server class usually uses a dispatcher class.
+It will handle the reading of network packets similar to the client (using epoll).
+Instead of handing it to the connection directly it will hand it to the dispatcher.
+
+The dispatcher uses a framer to parse the packets which in turn will call the dispatcher on reading frames.
+When the dispatcher has determined the connection to which the packet belongs it will call the ProcessUdpPacket of the sessions connection.
+If there is no such session, the dispatcher will first create it.

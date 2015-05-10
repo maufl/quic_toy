@@ -8,6 +8,7 @@
 #include "base/basictypes.h"
 #include "net/base/ip_endpoint.h"
 #include "net/quic/quic_packet_writer.h"
+#include "net/quic/quic_connection.h"
 
 namespace net {
 
