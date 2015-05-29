@@ -405,7 +405,7 @@ QuicServerSession* QuicDispatcher::CreateQuicSession(
       /* owns_writer= */ true, /*is_server*/ Perspective::IS_SERVER,
       crypto_config_->HasProofSource(), supported_versions_);
 
-  QuicServerSession* session = new QuicServerSession(config_, connection, this);
+  QuicServerSession* session = new QuicServerSession(config_, connection, this, helper_.get());
   session->InitializeSession(crypto_config_);
   return session;
 }

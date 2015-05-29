@@ -118,6 +118,8 @@ class QuicDispatcher : public QuicServerSessionVisitor,
   // Deletes all sessions on the closed session list and clears the list.
   void DeleteSessions();
 
+  QuicConnectionHelperInterface* helper() { return helper_.get(); }
+
  protected:
   virtual QuicServerSession* CreateQuicSession(
       QuicConnectionId connection_id,
@@ -168,8 +170,6 @@ class QuicDispatcher : public QuicServerSessionVisitor,
   }
 
   QuicFramer* framer() { return &framer_; }
-
-  QuicConnectionHelperInterface* helper() { return helper_.get(); }
 
   QuicPacketWriter* writer() { return writer_.get(); }
 

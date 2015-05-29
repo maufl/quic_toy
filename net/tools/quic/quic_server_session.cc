@@ -19,9 +19,11 @@ namespace tools {
 
 QuicServerSession::QuicServerSession(const QuicConfig& config,
                                      QuicConnection* connection,
-                                     QuicServerSessionVisitor* visitor)
+                                     QuicServerSessionVisitor* visitor,
+                                     QuicConnectionHelperInterface* helper)
     : QuicSession(connection, config),
       visitor_(visitor),
+      helper_(helper),
       bandwidth_estimate_sent_to_client_(QuicBandwidth::Zero()),
       last_scup_time_(QuicTime::Zero()),
       last_scup_sequence_number_(0) {}
@@ -36,7 +38,7 @@ void QuicServerSession::InitializeSession(
 
 QuicCryptoServerStream* QuicServerSession::CreateQuicCryptoServerStream(
     const QuicCryptoServerConfig* crypto_config) {
-  return new QuicCryptoServerStream(*crypto_config, this);
+  return new QuicCryptoServerStream(crypto_config, this);
 }
 
 void QuicServerSession::OnConnectionClosed(QuicErrorCode error,
@@ -76,7 +78,9 @@ QuicCryptoServerStream* QuicServerSession::GetCryptoStream() {
 }
 
 QuicDataStream* QuicServerSession::CreateIncomingDataStream(QuicStreamId id) {
-  return new QuicServerStream(id, this);
+  QuicServerStream* stream = new QuicServerStream(id, this, helper_);
+  stream->SetupPerformanceAlarm();
+  return stream;
 }
 
 }  // namespace tools

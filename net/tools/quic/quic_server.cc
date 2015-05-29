@@ -48,12 +48,8 @@ QuicServer::QuicServer(const QuicConfig& config,
   // If an initial flow control window has not explicitly been set, then use a
   // sensible value for a server: 1 MB for session, 64 KB for each stream.
   const uint32 kInitialSessionFlowControlWindow = 1 * 1024 * 1024;  // 1 MB
-  const uint32 kInitialStreamFlowControlWindow = 64 * 1024;         // 64 KB
-  if (config_.GetInitialStreamFlowControlWindowToSend() ==
-      kMinimumFlowControlSendWindow) {
-    config_.SetInitialStreamFlowControlWindowToSend(
-        kInitialStreamFlowControlWindow);
-  }
+  const uint32 kInitialStreamFlowControlWindow = 30 * 1024;
+  config_.SetInitialStreamFlowControlWindowToSend(kInitialStreamFlowControlWindow);
   if (config_.GetInitialSessionFlowControlWindowToSend() ==
       kMinimumFlowControlSendWindow) {
     config_.SetInitialSessionFlowControlWindowToSend(

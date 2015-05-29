@@ -17,6 +17,7 @@
 #include "net/quic/quic_crypto_server_stream.h"
 #include "net/quic/quic_protocol.h"
 #include "net/quic/quic_session.h"
+#include "net/quic/quic_connection.h"
 
 #include "net/tools/quic/quic_server_stream.h"
 
@@ -52,7 +53,8 @@ class QuicServerSession : public QuicSession {
  public:
   QuicServerSession(const QuicConfig& config,
                     QuicConnection* connection,
-                    QuicServerSessionVisitor* visitor);
+                    QuicServerSessionVisitor* visitor,
+                    QuicConnectionHelperInterface* helper);
 
   // Override the base class to notify the owner of the connection close.
   void OnConnectionClosed(QuicErrorCode error, bool from_peer) override;
@@ -88,6 +90,8 @@ class QuicServerSession : public QuicSession {
  private:
   scoped_ptr<QuicCryptoServerStream> crypto_stream_;
   QuicServerSessionVisitor* visitor_;
+
+  QuicConnectionHelperInterface* helper_;
 
   // The most recent bandwidth estimate sent to the client.
   QuicBandwidth bandwidth_estimate_sent_to_client_;
