@@ -1,7 +1,7 @@
 CC=g++
 CFLAGS=--std=c++11 -fpermissive -c -g
-INC=-I . -I ../libquic/src
-LDFLAGS=-L ../libquic/build -l quic -L ../libquic/build/boringssl/ssl -l ssl -L ../libquic/build/boringssl/crypto -l crypto -l pthread
+INC=-I . -I ../libquic/src -I ../libquic/src/third_party/protobuf/src
+LDFLAGS=-L ../libquic/build -l quic -L ../libquic/build/boringssl/ssl -l ssl -L ../libquic/build/boringssl/crypto -L ../libquic/build/protobuf -l protobuf -l crypto -l pthread
 SRCFILES=$(wildcard net/tools/quic/*.cc) $(wildcard net/tools/epoll_server/*.cc)
 OBJFILES=$(SRCFILES:.cc=.o)
 

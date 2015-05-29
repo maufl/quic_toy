@@ -177,7 +177,7 @@ QuicDispatcher::QuicDispatcher(const QuicConfig& config,
       current_packet_(nullptr),
       framer_(supported_versions,
               /*unused*/ QuicTime::Zero(),
-              /*is_server*/ true),
+              /*is_server*/ Perspective::IS_SERVER),
       framer_visitor_(new QuicFramerVisitor(this)) {
   framer_.set_visitor(framer_visitor_.get());
 }
@@ -402,7 +402,7 @@ QuicServerSession* QuicDispatcher::CreateQuicSession(
   // The QuicServerSession takes ownership of |connection| below.
   QuicConnection* connection = new QuicConnection(
       connection_id, client_address, helper_.get(), connection_writer_factory_,
-      /* owns_writer= */ true, /*is_server*/ true,
+      /* owns_writer= */ true, /*is_server*/ Perspective::IS_SERVER,
       crypto_config_->HasProofSource(), supported_versions_);
 
   QuicServerSession* session = new QuicServerSession(config_, connection, this);
