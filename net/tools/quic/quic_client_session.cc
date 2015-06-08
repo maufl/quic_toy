@@ -35,7 +35,9 @@ void QuicClientSession::CryptoConnect() {
 }
   
 QuicClientStream* QuicClientSession::CreateClientStream() {
-  return new QuicClientStream(GetNextStreamId(), this);
+  QuicDataStream* stream = new QuicClientStream(GetNextStreamId(), this);
+  ActivateStream(stream);
+  return (QuicClientStream*) stream;
 }
 
 }  // namespace tools

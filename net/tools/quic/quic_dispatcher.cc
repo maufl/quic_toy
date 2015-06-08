@@ -402,7 +402,7 @@ QuicServerSession* QuicDispatcher::CreateQuicSession(
   // The QuicServerSession takes ownership of |connection| below.
   QuicConnection* connection = new QuicConnection(
       connection_id, client_address, helper_.get(), connection_writer_factory_,
-      /* owns_writer= */ true, /*is_server*/ Perspective::IS_SERVER,
+      /* owns_writer= */ false, /*is_server*/ Perspective::IS_SERVER,
       crypto_config_->HasProofSource(), supported_versions_);
 
   QuicServerSession* session = new QuicServerSession(config_, connection, this, helper_.get());

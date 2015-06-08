@@ -67,6 +67,8 @@ class QuicClient : public EpollCallbackInterface,
   void OnUnregistration(int fd, bool replaced) override {}
   void OnShutdown(EpollServer* eps, int fd) override {}
 
+  void WaitForEvents();
+
   void OnClose(QuicDataStream* stream) {}
 
   bool connected() const;

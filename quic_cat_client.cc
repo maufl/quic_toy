@@ -77,10 +77,13 @@ int main(int argc, char *argv[]) {
     stream->WriteStringPiece(base::StringPiece(out), false);
     cout << (stream->HasBufferedData() ? "Stream has data buffered\n" : "Stream has no data buffered\n");
     cout << (stream->flow_controller()->IsBlocked() ? "Flow controller is blocked\n" : "Flow controller is not blocked\n");
+    if (stream->HasBufferedData()) {
+      client.WaitForEvents();
+    }
   }
 
   while (stream->HasBufferedData()) {
-    sleep(1);
+    client.WaitForEvents();
   }
 
   stream->CloseConnection(net::QUIC_NO_ERROR);

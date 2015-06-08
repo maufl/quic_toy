@@ -205,6 +205,10 @@ QuicClientStream* QuicClient::CreateClientStream() {
   return session_->CreateClientStream();
 }
 
+void QuicClient::WaitForEvents() {
+  epoll_server_->WaitForEventsAndExecuteCallbacks();
+}
+
 void QuicClient::OnEvent(int fd, EpollEvent* event) {
   DCHECK_EQ(fd, fd_);
 

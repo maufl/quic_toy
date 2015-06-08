@@ -11,6 +11,8 @@ namespace net {
       uint32 ProcessData(const char* data, uint32 data_len);
 
       void WriteStringPiece(base::StringPiece data, bool fin);
+
+      void OnWindowUpdateFrame(const QuicWindowUpdateFrame& frame);
     };
   }
 }
