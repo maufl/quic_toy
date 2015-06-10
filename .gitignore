@@ -1,6 +1,6 @@
 **/*.o
-quic_cat_client
-quic_cat_server
+quic_perf_client
+quic_perf_server
 QuicToy.config
 QuicToy.creator
 QuicToy.creator.user
