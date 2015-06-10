@@ -83,7 +83,7 @@ The session must then be initialized and finally we can start the crypto handsha
     }
 
 For this to work, the client must also read the UDP packets when it is notified by the epoll server.
-When a packet is read successfully it has to be dispatched to the QuicConnection using the ProcessUdpPacket method.
+When an QUIC packet is read successfully it has to be dispatched to the QuicConnection using the ProcessUdpPacket method.
 
     void QuicClient::OnEvent(int fd, EpollEvent* event) {
       if (event->in_events & EPOLLIN) {
@@ -135,31 +135,96 @@ The new stream has to be created in the session, as the protected ActivateStream
       QuicDataStream* stream = new QuicClientStream(GetNextStreamId(), this);
       ActivateStream(stream);
       return (QuicClientStream*) stream;
-      }
+    }
 
 Data can then be written to the stream using the WriteOrBufferData method.
   
 ### QUIC server application
-The server side is a bit more involved, as it has to handle multiple sessions with multiple connections.
-Therefore, the server class usually uses a dispatcher class.
-It will handle the reading of network packets similar to the client (using epoll).
-Instead of handing it to the connection directly it will hand it to the dispatcher.
+The server side is more complex, as it has to handle multiple sessions with multiple connections.
+Therefore, the server class (QuicServer) usually uses a dispatcher class (QuicDispatcher).
+It will handle the reading of network packets similar to the client (using epoll) but
+instead of handing it to the connection directly it will hand it to the dispatcher.
 
-    int bytes_read =
-        QuicSocketUtils::ReadPacket(fd, buf, arraysize(buf),
-                                    packets_dropped,
-                                    &server_ip, &client_address);
+First you need a QuicConfig that will late be passed to the sessions, a QuicCryptoServerConfig that must be initialized with a default config and a vector of QUIC versions that should be supported.
 
-    if (bytes_read < 0) {
-      return false;  // We failed to read.
+    QuicServer::QuicServer(const QuicConfig& config,
+                           const QuicVersionVector& supported_versions)
+        : ...,
+          config_(config),
+          crypto_config_(kSourceAddressTokenSecret, QuicRandom::GetInstance()),
+          supported_versions_(supported_versions) {
+
+      ...
+
+      QuicEpollClock clock(&epoll_server_);
+
+      scoped_ptr<CryptoHandshakeMessage> scfg(
+          crypto_config_.AddDefaultConfig(
+              QuicRandom::GetInstance(), &clock,
+              QuicCryptoServerConfig::ConfigOptions()));
     }
 
-    QuicEncryptedPacket packet(buf, bytes_read, false);
+Then you have to start to listen on a UPD socket and bind to the requested address.
+With the socket you can then initialize a new dispatcher.
 
-    IPEndPoint server_address(server_ip, port);
-    processor->ProcessPacket(server_address, client_address, packet);
+    bool QuicServer::Listen(const IPEndPoint& address) {
+      port_ = address.port();
+      int address_family = address.GetSockAddrFamily();
+      fd_ = socket(address_family, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_UDP);
 
-The dispatcher uses a framer to parse the packets which in turn will call the dispatcher on reading frames.
+      ...
+
+      sockaddr_storage raw_addr;
+      socklen_t raw_addr_len = sizeof(raw_addr);
+      address.ToSockAddr(reinterpret_cast<sockaddr*>(&raw_addr), &raw_addr_len);
+
+      rc = bind(fd_,reinterpret_cast<const sockaddr*>(&raw_addr), sizeof(raw_addr));
+
+      ...
+
+      epoll_server_.RegisterFD(fd_, this, kEpollFlags);
+      dispatcher_.reset(new QuicDispatcher(
+          config_,
+          &crypto_config_,
+          supported_versions_,
+          new QuicDispatcher::DefaultPacketWriterFactory(),
+          new QuicEpollConnectionHelper(&epoll_server_)));
+      dispatcher_->InitializeWithWriter(new QuicDefaultPacketWriter(fd_));
+
+      return true;
+    }
+
+Similar to the client, the server gets called by the epoll server when the socket is ready to read or write.
+The server can then read an UDP packet, create a QUIC packet from it and hand it to the dispatcher.
+
+    bool QuicServer::ReadAndDispatchSinglePacket(int fd,
+                                                 int port,
+                                                 ProcessPacketInterface* dispatcher,
+                                                 QuicPacketCount* packets_dropped) {
+      // Allocate some extra space so we can send an error if the client goes over
+      // the limit.
+      char buf[2 * kMaxPacketSize];
+
+      IPEndPoint client_address;
+      IPAddressNumber server_ip;
+      int bytes_read =
+          QuicSocketUtils::ReadPacket(fd, buf, arraysize(buf),
+                                      packets_dropped,
+                                      &server_ip, &client_address);
+
+      if (bytes_read < 0) {
+        return false;  // We failed to read.
+      }
+
+      QuicEncryptedPacket packet(buf, bytes_read, false);
+
+      IPEndPoint server_address(server_ip, port);
+      dispatcher->ProcessPacket(server_address, client_address, packet);
+
+      return true;
+    }
+
+The dispatcher uses a framer to parse the QUIC packets which in turn will call the OnUnauthenticatedPublicHeader method of the dispatcher on reading frames.
 
     void QuicDispatcher::ProcessPacket(const IPEndPoint& server_address,
                                        const IPEndPoint& client_address,
@@ -171,22 +236,54 @@ The dispatcher uses a framer to parse the packets which in turn will call the di
       // OnUnauthenticatedPublicHeader, or sent to the time wait list manager
       // in OnAuthenticatedHeader.
       framer_.ProcessPacket(packet);
-
-When the dispatcher has determined the connection to which the packet belongs it will call the ProcessUdpPacket of the sessions connection.
-If there is no such session, the dispatcher will first create it.
-
-    SessionMap::iterator it = session_map_.find(connection_id);
-    if (it == session_map_.end()) {
-      session = AdditionalValidityChecksThenCreateSession(header, connection_id);
-      if (session == nullptr) {
-        return false;
-      }
-    } else {
-      session = it->second;
     }
 
-    session->connection()->ProcessUdpPacket(
-        current_server_address_, current_client_address_, *current_packet_);
+The dispatcher looks at the connection id in the public header to find an existing session (with the given connection id).
+When the dispatcher has determined the connection to which the QUIC packet belongs it will call the ProcessUdpPacket of the sessions connection.
+If there is no such session, the dispatcher will first create it.
+
+    bool QuicDispatcher::OnUnauthenticatedPublicHeader(
+        const QuicPacketPublicHeader& header) {
+      // The session that we have identified as the one to which this packet belongs.
+      QuicServerSession* session = nullptr;
+      QuicConnectionId connection_id = header.connection_id;
+      SessionMap::iterator it = session_map_.find(connection_id);
+      if (it == session_map_.end()) {
+
+        ...
+
+        // Create a new session if there are no errors (like unsupported QUIC version)
+        session = AdditionalValidityChecksThenCreateSession(header, connection_id);
+        if (session == nullptr) {
+          return false;
+        }
+      } else {
+        session = it->second;
+      }
+
+      session->connection()->ProcessUdpPacket(current_server_address_, current_client_address_, *current_packet_);
+
+      // Do not parse the packet further.  The session methods called above have processed it completely.
+      return false;
+    }
+
+From there on, the process is the same as in the client.
+
+When the server receives a new connection it will create a new session as shown above.
+When a server session receives a new stream (a stream opened by the client), the CreateIncomingStream method of the session will be called.
+
+    QuicDataStream* QuicServerSession::CreateIncomingDataStream(QuicStreamId id) {
+      QuicServerStream* stream = new QuicServerStream(id, this, helper_);
+      return stream;
+    }
+
+Here you can create an instance of your own stream class (a subclass of QuicDataStream).
+The stream class then implements the ProcessRawData method which is where you can determine how incoming data is handled.
+
+    uint32 QuicServerStream::ProcessRawData(const char* data, uint32 data_len) {
+      // Return the number of bytes that where consumed
+      return data_len;
+    }
 
 ### QuicPacketWriter
 To handle packet writing you will have to implement the QuicPacketWriter interface.
@@ -207,21 +304,34 @@ It is responsible for writing the data to a network socket.
       return result;
     }
 
+The packet writer is usually created in the QuicClient and QuicServer.
+It is then passed to and used by the QuicConnection to write QUIC packets to the network socket.
+
 ### Epoll server
 To asynchroniously handle the network connection, epoll can be used.
-An implementation of an epoll server is already present in the chromium source code.
+An implementation of an epoll server is already present in the chromium source code in the net/tools/quic folder.
+This example contains a copy of this epoll server.
 
 ## Sub classes
 For each the server and the client, you need at least to subclass the QuicSession class and likely the QuicDataStream class.
 
 ### Session sub classes
-All QuicSession sub classes have to implement:
+All QuicSession sub classes have to implement the following methods as they are purely virtual in the base class.
 * *GetCryptoStream*
-* *CreateIncomingDataStream*
-* *CreateOutgoingDataStream*
 
-The last to methods are called when a new QuicDataStream (sub) class must be created.
+    Returns the reserved crypto stream. This stream has to be created in your class.
+* *CreateIncomingDataStream*
+    
+    As explained in the QUIC server application section, this method will be called when a new stream should be created because the peer opened a new stream.
+    If you don't want incoming streams to be created, you can just return nullptr.
+* *CreateOutgoingDataStream*
+    
+    Same as CreateIncominDataStream but for streams you open yourself (and not the peer).
+    Beware that if you create an instance of a stream you have to call the ActivateStream method of the session with the stream or else the stream will never receive any packets!
+
+The last two methods are called when a new QuicDataStream (sub) class must be created.
 By implementing these methods the session can be made to use a custom QuicDataStream sub class.
+You can look at the QUIC server application section for an example.
 
 The client session class inherits from QuicClientBaseSession.
 It has to additionally implement *OnProofValid* and *OnProofVerifyDetailsAvailable* as they are purely virtual in the base class.

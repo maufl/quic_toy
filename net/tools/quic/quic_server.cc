@@ -185,7 +185,7 @@ void QuicServer::OnEvent(int fd, EpollEvent* event) {
 /* static */
 bool QuicServer::ReadAndDispatchSinglePacket(int fd,
                                              int port,
-                                             ProcessPacketInterface* processor,
+                                             ProcessPacketInterface* dispatcher,
                                              QuicPacketCount* packets_dropped) {
   // Allocate some extra space so we can send an error if the client goes over
   // the limit.
@@ -205,7 +205,7 @@ bool QuicServer::ReadAndDispatchSinglePacket(int fd,
   QuicEncryptedPacket packet(buf, bytes_read, false);
 
   IPEndPoint server_address(server_ip, port);
-  processor->ProcessPacket(server_address, client_address, packet);
+  dispatcher->ProcessPacket(server_address, client_address, packet);
 
   // The socket read was successful, so return true even if packet dispatch
   // failed.
