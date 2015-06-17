@@ -19,10 +19,5 @@ namespace net {
     void QuicClientStream::WriteStringPiece(base::StringPiece data, bool fin) {
       this->WriteOrBufferData(data, fin, nullptr);
     }
-
-    void QuicClientStream::OnWindowUpdateFrame(const QuicWindowUpdateFrame& frame) {
-      std::cout << "Received a window update frame.\n";
-      ReliableQuicStream::OnWindowUpdateFrame(frame);
-    }
   }
 }

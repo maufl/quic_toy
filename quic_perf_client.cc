@@ -1,6 +1,8 @@
 // Small demo that reads form stdin and sents over a quic connection
 
 #include <iostream>
+#include <sstream>
+#include <time.h>
 
 #include "net/base/ip_endpoint.h"
 #include "net/tools/quic/quic_client.h"
@@ -21,6 +23,7 @@ using namespace std;
 
 uint64 FLAGS_total_transfer = 10 * 1000 * 1000;
 uint64 FLAGS_chunk_size = 1000;
+uint64 FLAGS_duration = 0;
 
 string randomString(uint length) {
   string result = "";
@@ -33,6 +36,12 @@ string randomString(uint length) {
 int main(int argc, char *argv[]) {
   base::CommandLine::Init(argc, argv);
   base::CommandLine* line = base::CommandLine::ForCurrentProcess();
+  const base::CommandLine::StringVector& args = line->GetArgs();
+  if (args.size() == 0) {
+    cout << "No address to connect to was provided.\n";
+    return 1;
+  }
+  std::string address = args[0];
 
   if (line->HasSwitch("t")) {
     if (!base::StringToUint64(line->GetSwitchValueASCII("t"), &FLAGS_total_transfer)) {
@@ -46,18 +55,29 @@ int main(int argc, char *argv[]) {
       return 1;
     }
   }
+  if (line->HasSwitch("d")) {
+    if (!base::StringToUint64(line->GetSwitchValueASCII("d"), &FLAGS_duration)) {
+      cout << "-d must be an unsigned integer\n";
+      return 1;
+    }
+  }
 
-  cout << "Run parameters are:\nchunk size: " << FLAGS_chunk_size << "\ntotal size: " << FLAGS_total_transfer << "\n";
+  cout << "Run parameters are:\nchunk size: " << FLAGS_chunk_size
+       << "\ntotal size: " << FLAGS_total_transfer
+       << "\nduration: " << FLAGS_duration << "\n";
 
   // Is needed for whatever reason
   base::AtExitManager exit_manager;
 
-  net::IPAddressNumber ip_address = (net::IPAddressNumber) std::vector<unsigned char> { 127, 0, 0, 1};
+  unsigned char a, b, c, d;
+  sscanf(address.c_str(), "%hhu.%hhu.%hhu.%hhu", &a, &b, &c, &d);
+  printf("Connecting to %hhu.%hhu.%hhu.%hhu\n", a, b, c, d);
+  net::IPAddressNumber ip_address = (net::IPAddressNumber) std::vector<unsigned char>{a, b, c, d};
   net::IPEndPoint server_address(ip_address, 1337);
-  net::QuicServerId server_id("localhost", 1337, /*is_http*/ false, net::PRIVACY_MODE_DISABLED);
+  net::QuicServerId server_id(address, 1337, /*is_http*/ false, net::PRIVACY_MODE_DISABLED);
   net::QuicVersionVector supported_versions = net::QuicSupportedVersions();
   net::EpollServer epoll_server;
-  
+
   net::tools::QuicClient client(server_address, server_id, supported_versions, &epoll_server);
   if (!client.Initialize()) {
     cerr << "Could not initialize client" << endl;
@@ -70,15 +90,19 @@ int main(int argc, char *argv[]) {
   }
   cout << "Successfully connected to server, hopefully" << endl;
   net::tools::QuicClientStream* stream = client.CreateClientStream();
-  string out;
-  for (uint64 i = 0; i < FLAGS_total_transfer; i += FLAGS_chunk_size) {
-    out = randomString(FLAGS_chunk_size);
-    //cout << "Sending " << out << "\n";
-    stream->WriteStringPiece(base::StringPiece(out), false);
-    cout << (stream->HasBufferedData() ? "Stream has data buffered\n" : "Stream has no data buffered\n");
-    cout << (stream->flow_controller()->IsBlocked() ? "Flow controller is blocked\n" : "Flow controller is not blocked\n");
-    if (stream->HasBufferedData()) {
-      client.WaitForEvents();
+  if (FLAGS_duration == 0) {
+    for (uint64 i = 0; i < FLAGS_total_transfer; i += FLAGS_chunk_size) {
+      stream->WriteStringPiece(base::StringPiece(randomString(FLAGS_chunk_size)), false);
+      if (stream->HasBufferedData()) {
+        client.WaitForEvents();
+      }
+    }
+  } else {
+    for (time_t dest = time(NULL) + FLAGS_duration; time(NULL) < dest; ) {
+      stream->WriteStringPiece(base::StringPiece(randomString(FLAGS_chunk_size)), false);
+      if (stream->HasBufferedData()) {
+        client.WaitForEvents();
+      }
     }
   }
 

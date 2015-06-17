@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "net/tools/quic/quic_server_stream.h"
+#include "net/quic/quic_time.h"
 
 namespace net {
   namespace tools {
@@ -17,9 +18,7 @@ namespace net {
 
     uint32 QuicServerStream::ProcessRawData(const char* data, uint32 data_len) {
       bytes_received += data_len;
-      std::cout << "Received " << data_len << " characters\n";
-      std::cout << (HasBufferedData() ? "Stream has buffered data\n" : "Stream does not have buffered data\n");
-      WriteStringPiece(base::StringPiece(data), false);
+      //WriteStringPiece(base::StringPiece(data), false);
       return data_len;
     }
 
@@ -38,7 +37,8 @@ namespace net {
     }
 
     QuicTime QuicServerStream::OnAlarm() {
-      std::cout << "Stream " << id() << " has " << bytes_received << " bytes received\n";
+      QuicWallTime now = helper_->GetClock()->WallNow();
+      std::cout << now.ToUNIXSeconds() << "," << bytes_received << "\n";
       return helper_->GetClock()->ApproximateNow().Add(QuicTime::Delta::FromSeconds(1));
     }
   }
