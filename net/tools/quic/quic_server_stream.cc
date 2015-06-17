@@ -41,5 +41,10 @@ namespace net {
       std::cout << now.ToUNIXSeconds() << "," << bytes_received << "\n";
       return helper_->GetClock()->ApproximateNow().Add(QuicTime::Delta::FromSeconds(1));
     }
+
+    void QuicServerStream::OnClose() {
+      QuicDataStream::OnClose();
+      exit(0);
+    }
   }
 }

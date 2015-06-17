@@ -25,6 +25,8 @@ namespace net {
 
       QuicTime OnAlarm();
 
+      void OnClose();
+
     private:
       uint64 bytes_received = 0;
       QuicConnectionHelperInterface* helper_;
