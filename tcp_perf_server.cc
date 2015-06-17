@@ -13,7 +13,7 @@ uint BUFFER_SIZE = 1024;
 uint64_t BYTES_RECEIVED = 0;
 
 void alarm_handler(int sig) {
-  cout << time(NULL) << "," << BYTES_RECEIVED << "\n";
+  cout << BYTES_RECEIVED << "\n";
   alarm(1);
 }
 

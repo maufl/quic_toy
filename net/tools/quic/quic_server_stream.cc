@@ -38,7 +38,7 @@ namespace net {
 
     QuicTime QuicServerStream::OnAlarm() {
       QuicWallTime now = helper_->GetClock()->WallNow();
-      std::cout << now.ToUNIXSeconds() << "," << bytes_received << "\n";
+      std::cout << bytes_received << "\n";
       return helper_->GetClock()->ApproximateNow().Add(QuicTime::Delta::FromSeconds(1));
     }
 
