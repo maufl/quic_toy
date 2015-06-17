@@ -5,12 +5,18 @@ LDFLAGS=-L ../libquic/build -l quic -L ../libquic/build/boringssl/ssl -l ssl -L 
 SRCFILES=$(wildcard net/tools/quic/*.cc) $(wildcard net/tools/epoll_server/*.cc)
 OBJFILES=$(SRCFILES:.cc=.o)
 
-all: quic_perf_client quic_perf_server
+all: quic_perf_client quic_perf_server tcp_perf_server tcp_perf_client
 
 quic_perf_client: $(OBJFILES) quic_perf_client.o
 	$(CC) $(OBJFILES) $@.o -o $@ $(LDFLAGS)
 
 quic_perf_server: $(OBJFILES) quic_perf_server.o
+	$(CC) $(OBJFILES) $@.o -o $@ $(LDFLAGS)
+
+tcp_perf_server: $(OBJFILES) tcp_perf_server.o
+	$(CC) $(OBJFILES) $@.o -o $@ $(LDFLAGS)
+
+tcp_perf_client: $(OBJFILES) tcp_perf_client.o
 	$(CC) $(OBJFILES) $@.o -o $@ $(LDFLAGS)
 
 .cc.o:
