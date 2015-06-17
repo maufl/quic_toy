@@ -38,11 +38,11 @@ def performance_test(srv_cmd, clt_cmd, **opts):
     print("Performance test finished")
 
 def run_all_tests():
-    time = 60
-    for loss in (0, 1, 5):
-        performance_test('./quic_perf_server',"./quic_perf_client -d=%s 192.168.0.1" % time, bw=5,loss=loss)
-    for loss in (0, 1, 5):
-        performance_test('./tcp_perf_server',"./tcp_perf_client -d=%s 192.168.0.1" % time, bw=5,loss=loss)
+    time = 30
+    for bw in (10, 100, 1000):
+        for loss in (0, 1, 5):
+            performance_test('./quic_perf_server',"./quic_perf_client -d=%s 192.168.0.1" % time, delay=12,bw=bw,loss=loss)
+            performance_test('./tcp_perf_server',"./tcp_perf_client -d=%s 192.168.0.1" % time, delay=12,bw=bw,loss=loss)
 
 def run_cli():
     net = SimpleTopology.create_net()
