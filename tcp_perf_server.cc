@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
     }
     BYTES_RECEIVED += n;
   }
-
+  cout.flush();
   close(accepted_socket);
   close(listen_socket);
   return 0;

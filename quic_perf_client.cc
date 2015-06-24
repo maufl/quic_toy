@@ -97,6 +97,11 @@ int main(int argc, char *argv[]) {
         client.WaitForEvents();
       }
     }
+    
+    while (stream->HasBufferedData()) {
+      client.WaitForEvents();
+    }
+    
   } else {
     for (time_t dest = time(NULL) + FLAGS_duration; time(NULL) < dest; ) {
       stream->WriteStringPiece(base::StringPiece(randomString(FLAGS_chunk_size)), false);
@@ -104,10 +109,6 @@ int main(int argc, char *argv[]) {
         client.WaitForEvents();
       }
     }
-  }
-
-  while (stream->HasBufferedData()) {
-    client.WaitForEvents();
   }
 
   stream->CloseConnection(net::QUIC_NO_ERROR);

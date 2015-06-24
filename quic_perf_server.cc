@@ -39,4 +39,6 @@ int main(int argc, char *argv[]) {
     server.WaitForEvents();
   }
 
+  cout.flush();
+
 }
