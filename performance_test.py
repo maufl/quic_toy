@@ -2,6 +2,7 @@
 
 import time
 import re
+from multiprocessing import Pool
 from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.node import RemoteController
@@ -10,6 +11,9 @@ from mininet.log import setLogLevel
 from mininet.link import TCLink
 
 #setLogLevel("info")
+
+POOL_SIZE = 8
+RUN_TIME = 30
 
 class SimpleTopology(Topo):
 
@@ -28,21 +32,41 @@ def performance_test(srv_cmd, clt_cmd, **opts):
     net.start()
     h1 = net.get('h1')
     h2 = net.get('h2')
-    cmd = '%s > server_%s_%s &' % (srv_cmd, re.sub('[ /]', '_', srv_cmd),
-                                    '_'.join("%s=%r" % (key,val) for (key,val) in opts.iteritems()))
-    print("Running server:\n%s" % cmd)
-    h1.cmd(cmd)
+    ofile = open('server_%s_%s' % (re.sub('[ /]', '_', srv_cmd), '_'.join("%s=%r" % (key,val) for (key,val) in opts.iteritems())), 'w')
+    print("Running server:\n%s" % srv_cmd)
+    h1.sendCmd(srv_cmd + " 2>>error_log")
+    time.sleep(1)
     h2.cmd(clt_cmd)
-    time.sleep(5)
+    result = h1.waitOutput()
+    ofile.write(result)
+    ofile.close()
     net.stop()
     print("Performance test finished")
 
-def run_all_tests():
-    time = 30
-    for bw in (10, 100, 1000):
-        for loss in (0, 1, 5):
-            performance_test('./quic_perf_server',"./quic_perf_client -d=%s 192.168.0.1" % time, delay=12,bw=bw,loss=loss)
-            performance_test('./tcp_perf_server',"./tcp_perf_client -d=%s 192.168.0.1" % time, delay=12,bw=bw,loss=loss)
+def run_all_tests_parallel():
+    pool = Pool(POOL_SIZE)
+    for delay in (12, 50, 250):
+        for bw in (1, 5, 10, 100, 1000):
+            for loss in (0, 1, 5):
+                r = pool.apply_async(performance_test,
+                                     ['./quic_perf_server',
+                                      "./quic_perf_client -d=%s 192.168.0.1" % RUN_TIME],
+                                      dict(delay=delay, bw=bw, loss=loss)
+                                     )
+                r = pool.apply_async(performance_test,
+                                     ['./tcp_perf_server',
+                                      "./tcp_perf_client -d=%s 192.168.0.1" % RUN_TIME],
+                                      dict(delay=delay, bw=bw, loss=loss)
+                                     )
+    pool.close()
+    pool.join()
+
+def run_all_tests_sequentially():
+    for delay in (12, 50, 250):
+        for bw in (1, 5, 10, 100, 1000):
+            for loss in (0, 1, 5):
+                performance_test('./quic_perf_server', "./quic_perf_client -d=%s 192.168.0.1" % RUN_TIME, delay=delay, bw=bw, loss=loss)
+                performance_test('./tcp_perf_server', "./tcp_perf_client -d=%s 192.168.0.1" % RUN_TIME,  delay=delay, bw=bw, loss=loss)
 
 def run_cli():
     net = SimpleTopology.create_net()
@@ -50,4 +74,4 @@ def run_cli():
     CLI(net)
     net.stop()
 
-run_all_tests()
+run_all_tests_parallel()
