@@ -75,17 +75,9 @@ class QuicServerSession : public QuicSession {
 
  protected:
   // QuicSession methods:
-  QuicDataStream* CreateIncomingDataStream(QuicStreamId id);
-  QuicDataStream* CreateOutgoingDataStream() { return nullptr; };
+  ReliableQuicStream* CreateIncomingDynamicStream(QuicStreamId id);
+  ReliableQuicStream* CreateOutgoingDynamicStream() { return nullptr; };
   QuicCryptoServerStream* GetCryptoStream() override;
-
-  // If we should create an incoming stream, returns true. Otherwise
-  // does error handling, including communicating the error to the client and
-  // possibly closing the connection, and returns false.
-  virtual bool ShouldCreateIncomingDataStream(QuicStreamId id);
-
-  virtual QuicCryptoServerStream* CreateQuicCryptoServerStream(
-      const QuicCryptoServerConfig* crypto_config);
 
  private:
   scoped_ptr<QuicCryptoServerStream> crypto_stream_;

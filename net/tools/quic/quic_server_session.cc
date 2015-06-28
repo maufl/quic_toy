@@ -32,13 +32,8 @@ QuicServerSession::~QuicServerSession() {}
 
 void QuicServerSession::InitializeSession(
     const QuicCryptoServerConfig* crypto_config) {
-  QuicSession::InitializeSession();
-  crypto_stream_.reset(CreateQuicCryptoServerStream(crypto_config));
-}
-
-QuicCryptoServerStream* QuicServerSession::CreateQuicCryptoServerStream(
-    const QuicCryptoServerConfig* crypto_config) {
-  return new QuicCryptoServerStream(crypto_config, this);
+  crypto_stream_.reset(new QuicCryptoServerStream(crypto_config, this));
+  QuicSession::Initialize();
 }
 
 void QuicServerSession::OnConnectionClosed(QuicErrorCode error,
@@ -57,27 +52,11 @@ void QuicServerSession::OnWriteBlocked() {
   visitor_->OnWriteBlocked(connection());
 }
 
-bool QuicServerSession::ShouldCreateIncomingDataStream(QuicStreamId id) {
-  if (id % 2 == 0) {
-    DVLOG(1) << "Invalid incoming even stream_id:" << id;
-    connection()->SendConnectionClose(QUIC_INVALID_STREAM_ID);
-    return false;
-  }
-  if (GetNumOpenStreams() >= get_max_open_streams()) {
-    DVLOG(1) << "Failed to create a new incoming stream with id:" << id
-             << " Already " << GetNumOpenStreams() << " streams open (max "
-             << get_max_open_streams() << ").";
-    connection()->SendConnectionClose(QUIC_TOO_MANY_OPEN_STREAMS);
-    return false;
-  }
-  return true;
-}
-
 QuicCryptoServerStream* QuicServerSession::GetCryptoStream() {
   return crypto_stream_.get();
 }
 
-QuicDataStream* QuicServerSession::CreateIncomingDataStream(QuicStreamId id) {
+ReliableQuicStream* QuicServerSession::CreateIncomingDynamicStream(QuicStreamId id) {
   QuicServerStream* stream = new QuicServerStream(id, this, helper_);
   stream->SetupPerformanceAlarm();
   return stream;

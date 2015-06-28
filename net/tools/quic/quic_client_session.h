@@ -23,7 +23,7 @@ class ReliableQuicStream;
 
 namespace tools {
 
-class QuicClientSession : public QuicClientSessionBase {
+class QuicClientSession : public QuicSession {
  public:
   QuicClientSession(const QuicConfig& config, QuicConnection* connection);
   ~QuicClientSession() override;
@@ -37,9 +37,8 @@ class QuicClientSession : public QuicClientSessionBase {
 
   QuicCryptoStream* GetCryptoStream() { return crypto_stream_.get(); };
 
-  // has to be implemented to satisfy QuicSession but is infested with SPDY
-  QuicDataStream* CreateOutgoingDataStream() { return nullptr; };
-  QuicDataStream* CreateIncomingDataStream(QuicStreamId id) { return nullptr; };
+  virtual ReliableQuicStream* CreateOutgoingDynamicStream() { return nullptr; };
+  virtual ReliableQuicStream* CreateIncomingDynamicStream(QuicStreamId id) { return nullptr; };
   // has to be implemented for secure stream
   void OnProofValid(const QuicCryptoClientConfig::CachedState&) {};
   void OnProofVerifyDetailsAvailable(const ProofVerifyDetails&) {};

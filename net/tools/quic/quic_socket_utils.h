@@ -15,6 +15,7 @@
 #include "net/base/ip_endpoint.h"
 #include "net/quic/quic_bandwidth.h"
 #include "net/quic/quic_types.h"
+#include "net/base/net_util.h"
 
 namespace net {
 namespace tools {

@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
   std::string address = args[0];
 
   if (line->HasSwitch("t")) {
-    if (!base::StringToUint64(line->GetSwitchValueASCII("t"), &FLAGS_total_transfer)) {
+    if (!base::StringToUint64(line->GetSwitchValueASCII(base::StringPiece("t")), &FLAGS_total_transfer)) {
       cout << "-t must be an unsigned integer\n";
       return 1;
     }

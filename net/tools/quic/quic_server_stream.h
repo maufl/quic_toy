@@ -9,13 +9,12 @@
 namespace net {
   namespace tools {
 
-    class QuicServerStream: public QuicDataStream, public QuicAlarm::Delegate {
+    class QuicServerStream: public ReliableQuicStream, public QuicAlarm::Delegate {
     public:
       QuicServerStream(QuicStreamId id, QuicSession* session, QuicConnectionHelperInterface* helper);
       ~QuicServerStream();
 
       uint32 ProcessRawData(const char* data, uint32 data_len) override;
-      uint32 ProcessData(const char* data, uint32 data_len) { return 0; };
 
       QuicPriority EffectivePriority() const override;
 

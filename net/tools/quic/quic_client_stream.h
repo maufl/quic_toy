@@ -3,12 +3,14 @@
 namespace net {
   namespace tools {
 
-    class QuicClientStream: public QuicDataStream {
+    class QuicClientStream: public ReliableQuicStream {
     public:
       QuicClientStream(QuicStreamId id, QuicSession* session);
       ~QuicClientStream();
 
-      uint32 ProcessData(const char* data, uint32 data_len);
+      uint32 ProcessRawData(const char* data, uint32 data_len);
+
+      QuicPriority EffectivePriority() const override;
 
       void WriteStringPiece(base::StringPiece data, bool fin);
     };

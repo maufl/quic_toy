@@ -15,7 +15,7 @@ namespace tools {
 
 QuicClientSession::QuicClientSession(const QuicConfig& config,
                                      QuicConnection* connection)
-    : QuicClientSessionBase(connection, config) {
+    : QuicSession(connection, config) {
 }
 
 QuicClientSession::~QuicClientSession() {
@@ -26,7 +26,7 @@ void QuicClientSession::InitializeSession(
     QuicCryptoClientConfig* crypto_config) {
   crypto_stream_.reset(
       new QuicCryptoClientStream(server_id, this, nullptr, crypto_config));
-  QuicClientSessionBase::InitializeSession();
+  QuicSession::Initialize();
 }
 
 void QuicClientSession::CryptoConnect() {
@@ -35,7 +35,7 @@ void QuicClientSession::CryptoConnect() {
 }
   
 QuicClientStream* QuicClientSession::CreateClientStream() {
-  QuicDataStream* stream = new QuicClientStream(GetNextStreamId(), this);
+  ReliableQuicStream* stream = new QuicClientStream(GetNextStreamId(), this);
   ActivateStream(stream);
   return (QuicClientStream*) stream;
 }

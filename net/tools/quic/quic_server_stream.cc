@@ -7,9 +7,8 @@ namespace net {
   namespace tools {
 
     QuicServerStream::QuicServerStream(QuicStreamId id, QuicSession* session, QuicConnectionHelperInterface* helper)
-      : QuicDataStream(id, session),
+      : ReliableQuicStream(id, session),
         helper_(helper) {
-      sequencer()->FlushBufferedFrames();
     }
 
     QuicServerStream::~QuicServerStream() {
@@ -23,7 +22,7 @@ namespace net {
     }
 
     QuicPriority QuicServerStream::EffectivePriority() const {
-      return (QuicPriority) 3;
+      return (QuicPriority) 0;
     }
     
     void QuicServerStream::WriteStringPiece(base::StringPiece data, bool fin) {
@@ -43,7 +42,7 @@ namespace net {
     }
 
     void QuicServerStream::OnClose() {
-      QuicDataStream::OnClose();
+      ReliableQuicStream::OnClose();
       exit(0);
     }
   }
