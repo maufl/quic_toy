@@ -1,4 +1,6 @@
 # QUIC toy
+**These documents are currently out of date, as libquic had breaking changes recently.**
+
 To evaluate QUIC and to get familiar with the implementation in Chromium, we wrote a "simple" QUIC client and server.
 This repository contains this client, server as well as a TCP client and server for comparison.
 The QUIC client and server depend on [libquic](https://github.com/devsisters/libquic), which is the Chromium QUIC implementation extracted into a library.
