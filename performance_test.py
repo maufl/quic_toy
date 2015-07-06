@@ -27,7 +27,7 @@ class SimpleTopology(Topo):
         return Mininet(topo=SimpleTopology(**opts), link=TCLink)
 
 def performance_test(srv_cmd, clt_cmd, run_index, **opts):
-    print("Starting performance test with parameters %s" % (opts))
+    print("Starting performance test run %s with parameters %s" % (run_index, opts))
     net = SimpleTopology.create_net(**opts)
     net.start()
     h1 = net.get('h1')
@@ -36,8 +36,18 @@ def performance_test(srv_cmd, clt_cmd, run_index, **opts):
     print("Running server:\n%s" % srv_cmd)
     h1.sendCmd(srv_cmd + " 2>>error_log")
     time.sleep(1)
-    h2.cmd(clt_cmd)
-    result = h1.waitOutput()
+    h2.sendCmd(clt_cmd)
+    result = ''
+    while h1.waiting:
+        data = h1.monitor(timeoutms=RUN_TIME * 2 * 1000)
+        if len(data) == 0:
+            errfile = open('error_log', 'a')
+            errfile.write("In run %s test with parameters %s did timeout" % (run_index, opts))
+            errfile.close()
+            break
+        result += data
+    h1.terminate()
+    h2.terminate()
     ofile.write(result)
     ofile.close()
     net.stop()
