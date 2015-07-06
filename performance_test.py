@@ -38,11 +38,13 @@ def performance_test(srv_cmd, clt_cmd, run_index, **opts):
     time.sleep(1)
     h2.sendCmd(clt_cmd)
     result = ''
+    start = time.time()
     while h1.waiting:
         data = h1.monitor(timeoutms=RUN_TIME * 2 * 1000)
-        if len(data) == 0:
+        if time.time() - start > (RUN_TIME * 2):
+            print("Started at %s and it's now %s, that's %s seconds later" % (start, time.time(), time.time() - start))
             errfile = open('error_log', 'a')
-            errfile.write("In run %s test with parameters %s did timeout" % (run_index, opts))
+            errfile.write("In run %s test with parameters %s did timeout\n" % (run_index, opts))
             errfile.close()
             break
         result += data
