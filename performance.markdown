@@ -45,7 +45,7 @@ At all bandwidths, TCP outperforms QUIC on low packet loss rates and this become
 
 To improve the accuracy of our results, we ran the test for all parameters multiple times and then aggregated (after sorting out failed test runs) all collected datarates for each parameter combination.
 The mean datarates for each parameter combination can be seen in the following graphs.
-![Graph: 5 Mbps](results/datarate-to-loss_5Mpbs.png)
+![Graph: 5 Mbps](results/datarate-to-loss_5Mbps.png)
 ![Graph: 10 Mbps](results/datarate-to-loss_10Mbps.png)
 At 100 MBps the performance difference between TCP and QUIC becomes visible.
 ![Graph: 100 Mbps](results/datarate-to-loss_100Mbps.png)
