@@ -41,5 +41,11 @@ It is unclear however what influence the software of the virtual network has on 
 Furthermore, the default settings for send and receive windows where used. QUIC allows to customize several parameters of the flow control and we have not tested whether changing those would improve throughput.
 
 Our measurements and graphs can be found in the `results` folder.
-The graph for 100ms RTT and 100 MB/s shows how QUIC performs better at higher packet loss rates while TCP performs better at high bandwidth (and low packet loss rate).
-![Graph: 100ms RTT, 100 MB/s](results/quic_vs_tcp_100ms_100Mbs.png)
+At all bandwidths, TCP outperforms QUIC on low packet loss rates and this becomes more visible at higher bandwidths.
+
+To improve the accuracy of our results, we ran the test for all parameters multiple times and then aggregated (after sorting out failed test runs) all collected datarates for each parameter combination.
+The mean datarates for each parameter combination can be seen in the following graphs.
+![Graph: 5 Mbps](results/datarate-to-loss_5Mpbs.png)
+![Graph: 10 Mbps](results/datarate-to-loss_10Mbps.png)
+At 100 MBps the performance difference between TCP and QUIC becomes visible.
+![Graph: 100 Mbps](results/datarate-to-loss_100Mbps.png)
