@@ -13,16 +13,14 @@ SCALE = 8.0 / 10**6 # convert from bits to megabyte
 
 BWS.each do |bandwidth|
 
-  puts "Compile results for bandwidth to loss plot, bandwidth = %s" % [bandwidth]
   table = File.open("datarate-to-loss_bandwidth=%s" % [bandwidth], 'w')
   DELAYS.each do |delay|
     # start new record for delay `delay`
     table << "#[Delay %s]\n" % delay
-    table << "loss tcp-average tcp-variance quic-average quic-variance\n"
+    table << "loss tcp-average tcp-standard_deviation quic-average quic-standard_deviation\n"
     LOSSES.each do |loss|
       table << "%04.1f " % loss
       PROTOS.each do |proto|
-        puts "Compiling runs for %s delay=%s loss=%s" % [proto, delay, loss]
         # start calculation over all runs
         data_points = []
         RUNS.each do |run|
@@ -56,8 +54,8 @@ BWS.each do |bandwidth|
           end
         end
         mean = data_points.reduce(:+) / data_points.size
-        variance = data_points.map{|dp| (dp - mean) ** 2 }.reduce(:+) / data_points.size
-        table << "%.3f %.3f " % [mean, variance]
+        standard_deviation = Math.sqrt(data_points.map{|dp| (dp - mean) ** 2 }.reduce(:+) / data_points.size)
+        table << "%.3f %.3f " % [mean, standard_deviation]
         # finished calculation over all runs
       end
       # finish calculation for all losses, start new record
