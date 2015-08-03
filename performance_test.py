@@ -77,8 +77,8 @@ def run_all_tests_parallel(run_index):
 
 def run_all_tests_sequentially(run_index):
     for delay in (12, 50, 250):
-        for bw in (1, 5, 10, 100, 1000):
-            for loss in (0, 1, 5):
+        for bw in (5, 10, 100):
+            for loss in (0, 2.5, 5, 7.5, 10):
                 performance_test('./quic_perf_server', "./quic_perf_client -d=%s 192.168.0.1" % RUN_TIME, run_index, delay=delay, bw=bw, loss=loss)
                 performance_test('./tcp_perf_server', "./tcp_perf_client -d=%s 192.168.0.1" % RUN_TIME, run_index, delay=delay, bw=bw, loss=loss)
 
@@ -88,5 +88,5 @@ def run_cli():
     CLI(net)
     net.stop()
 
-for run_index in range(0,100):
-    run_all_tests_parallel(run_index)
+for run_index in range(0,1):
+    run_all_tests_sequentially(run_index)
