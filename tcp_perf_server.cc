@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
       exit(1);
     }
     if (n == 0) {
-      cout << "Connection closed\n";
+      //cout << "Connection closed\n";
       break;
     }
     BYTES_RECEIVED += n;
