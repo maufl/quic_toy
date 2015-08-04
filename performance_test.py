@@ -14,6 +14,7 @@ from mininet.link import TCLink
 
 POOL_SIZE = 8
 RUN_TIME = 30
+NUM_RUNS = 1
 
 class SimpleTopology(Topo):
 
@@ -88,5 +89,5 @@ def run_cli():
     CLI(net)
     net.stop()
 
-for run_index in range(0,1):
+for run_index in range(0,NUM_RUNS):
     run_all_tests_sequentially(run_index)
