@@ -62,10 +62,11 @@ At 100 MBps the performance difference between TCP and QUIC becomes visible.
 ![Graph: 100 Mbps](vm-run/datarate-to-loss_100Mbps.png)
 
 The same data is available in tabular form in `vm-run/datarate-to-loss_bandwidth=(5|10|100)`.
+
 For a 100Mbps link the tables looks like this:
 
-## RTT 24ms
-loss | TCP average | TCP standard deviation | QUIC average | QUIC standard deviation
+#### RTT 24ms
+packet loss [%] | TCP average [Mbps] | TCP standard deviation [Mbps] | QUIC average [Mbps] | QUIC standard deviation [Mbps]
 ---- | ---- | ---- | ---- | ----
 0 | 95.601 | 3.147 | 46.629 | 2.022
 2.5 | 79.678 | 16.975 | 21.420 | 4.192
@@ -74,8 +75,8 @@ loss | TCP average | TCP standard deviation | QUIC average | QUIC standard devia
 10 | 1.777 | 1.668 | 10.157 | 3.155
 
 
-## RTT 100ms
-loss | TCP average | TCP standard deviation | QUIC average | QUIC standard deviation
+#### RTT 100ms
+packet loss [%] | TCP average [Mbps] | TCP standard deviation [Mbps] | QUIC average [Mbps] | QUIC standard deviation [Mbps]
 ---- | ---- | ---- | ---- | ----
 0 | 95.609 | 0.098 | 46.782 | 1.716
 2.5 | 80.115 | 18.305 | 21.412 | 4.050
@@ -84,8 +85,8 @@ loss | TCP average | TCP standard deviation | QUIC average | QUIC standard devia
 10 | 2.152 | 1.846 | 10.232 | 3.298
 
 
-## RTT 500ms
-loss | TCP average | TCP standard deviation | QUIC average | QUIC standard deviation
+#### RTT 500ms
+packet loss [%] | TCP average [Mbps] | TCP standard deviation [Mbps] | QUIC average [Mbps] | QUIC standard deviation [Mbps]
 ---- | ---- | ---- | ---- | ----
 0 | 95.604 | 0.123 | 46.441 | 1.576
 2.5 | 81.561 | 15.078 | 21.385 | 4.325
