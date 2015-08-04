@@ -16,6 +16,10 @@ POOL_SIZE = 8
 RUN_TIME = 30
 NUM_RUNS = 1
 
+DELAYS = (12, 50, 250)
+BANDWIDTHS = (5, 10, 100)
+LOSSES = (0, 1, 5)
+
 class SimpleTopology(Topo):
 
     def build(self, **opts):
@@ -58,9 +62,9 @@ def performance_test(srv_cmd, clt_cmd, run_index, **opts):
 
 def run_all_tests_parallel(run_index):
     pool = Pool(POOL_SIZE)
-    for delay in (12, 50, 250):
-        for bw in (1, 5, 10, 100, 1000):
-            for loss in (0, 1, 5):
+    for delay in DELAYS:
+        for bw in BANDWIDTHS:
+            for loss in LOSSES:
                 r = pool.apply_async(performance_test,
                                      ['./quic_perf_server',
                                       "./quic_perf_client -d=%s 192.168.0.1" % RUN_TIME,
@@ -77,9 +81,9 @@ def run_all_tests_parallel(run_index):
     pool.join()
 
 def run_all_tests_sequentially(run_index):
-    for delay in (12, 50, 250):
-        for bw in (5, 10, 100):
-            for loss in (0, 2.5, 5, 7.5, 10):
+    for delay in DELAYS:
+        for bw in BANDWIDTHS:
+            for loss in LOSSES:
                 performance_test('./quic_perf_server', "./quic_perf_client -d=%s 192.168.0.1" % RUN_TIME, run_index, delay=delay, bw=bw, loss=loss)
                 performance_test('./tcp_perf_server', "./tcp_perf_client -d=%s 192.168.0.1" % RUN_TIME, run_index, delay=delay, bw=bw, loss=loss)
 

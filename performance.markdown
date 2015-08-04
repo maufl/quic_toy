@@ -39,7 +39,7 @@ Unfortunately, Mininet is only available on Linux, so you need a Linux host with
 3. Run `plot` to plot the graphs for one run.
 
     For this you will need to have gnuplot installed.
-    The `plot` script will plot graphs for one run.
+    The `plot` script will plot graphs for one run, just make sure that the possible values for delay, loss and bandwidth are the same in `performance_test.py` and `plot`.
     If you want to determine statistics about the average data-rate, use the `build-datarate-to-loss-table.rb` script in the `vm-run` directory.
     The generated statistics can then be plotted using the `plot-datarate-to-loss.gnuplot` from the same directory.
 
